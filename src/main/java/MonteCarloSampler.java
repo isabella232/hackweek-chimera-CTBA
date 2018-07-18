@@ -1,0 +1,91 @@
+import org.apache.commons.math3.distribution.BetaDistribution;
+
+public class MonteCarloSampler {
+
+    private int sampleSize;
+    private int numberOfVariations;
+    private double[][] samples;
+    private BetaDistribution[] distributions;
+    private boolean[] hasBeenSampled;
+
+    public MonteCarloSampler(double[][] input, int sampleSize) {
+        this.sampleSize = sampleSize;
+        numberOfVariations = input.length;
+        samples = new double[numberOfVariations][sampleSize];
+        hasBeenSampled = new boolean[numberOfVariations];
+        distributions = new BetaDistribution[numberOfVariations];
+        for (int i = 0; i < numberOfVariations; i++) {
+            distributions[i] = new BetaDistribution(input[i][0], input[i][1]);
+        }
+    }
+
+    public double probabilityToBeatOneVariation(int variationToTest, int variationToBeat) {
+        if (!hasBeenSampled[variationToTest]) {
+            samples[variationToTest] = sampleVariation(variationToTest);
+            hasBeenSampled[variationToTest] = true;
+        }
+        if (!hasBeenSampled[variationToBeat]) {
+            samples[variationToBeat] = sampleVariation(variationToBeat);
+            hasBeenSampled[variationToBeat] = true;
+        }
+
+        return (double) pairwiseCompare(variationToTest, variationToBeat) / sampleSize;
+    }
+
+    public double probabilityToBeatAllVariations(int variationToTest) {
+        for (int i = 0; i < numberOfVariations; i++) {
+            if (!hasBeenSampled[i]) {
+                samples[i] = sampleVariation(i);
+                hasBeenSampled[i] = true;
+            }
+        }
+
+        int successes = 0;
+        for (int i = 0; i < sampleSize; i++) {
+            if (beatsAllForOneDataPoint(variationToTest, i)) {
+                successes++;
+            }
+        }
+        return (double) successes / sampleSize;
+    }
+
+//    private class beatsAllForOneDataPoint extends Runnable {
+//        public void run() {
+//            for (int i = 0; i < numberOfVariations; i++) {
+//                if (i != variationToTest) {
+//                    if (samples[variationToTest][dataPoint] < samples[i][dataPoint]) {
+//                        return false;
+//                    }
+//                }
+//            }
+//            return true;
+//        }
+//    }
+
+    private boolean beatsAllForOneDataPoint(int variationToTest, int dataPoint) {
+        for (int i = 0; i < numberOfVariations; i++) {
+            if (i != variationToTest) {
+                if (samples[variationToTest][dataPoint] < samples[i][dataPoint]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private int pairwiseCompare(int variationToTest, int variationToBeat) {
+        int successes = 0;
+        for (int i = 0; i < sampleSize; i++) {
+            if (samples[variationToTest][i] > samples[variationToBeat][i]) {
+                successes++;
+            }
+        }
+        return successes;
+    }
+
+    private double[] sampleVariation(int variationToSample) {
+        System.out.println("sampling " + variationToSample);
+        BetaDistribution distribution = distributions[variationToSample];
+        return distribution.sample(sampleSize);
+    }
+}
