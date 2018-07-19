@@ -49,18 +49,31 @@ public class MonteCarloSampler {
         return (double) successes / sampleSize;
     }
 
-//    private class beatsAllForOneDataPoint extends Runnable {
-//        public void run() {
-//            for (int i = 0; i < numberOfVariations; i++) {
-//                if (i != variationToTest) {
-//                    if (samples[variationToTest][dataPoint] < samples[i][dataPoint]) {
-//                        return false;
-//                    }
-//                }
-//            }
-//            return true;
-//        }
-//    }
+    public double calculateLoss(int variationToTest) {
+        for (int i = 0; i < numberOfVariations; i++) {
+            if (!hasBeenSampled[i]) {
+                samples[i] = sampleVariation(i);
+                hasBeenSampled[i] = true;
+            }
+        }
+        double loss = 0;
+        for (int i = 0; i < sampleSize; i++) {
+            loss += calculateLossForOneDataPoint(variationToTest, i);
+        }
+        return loss / sampleSize;
+    }
+
+    private double calculateLossForOneDataPoint(int variationToTest, int dataPoint) {
+        double maxLoss = 0;
+        for (int i = 0; i < numberOfVariations; i++) {
+            double loss = samples[variationToTest][dataPoint] - samples[i][dataPoint];
+            if (loss > maxLoss) {
+                maxLoss = loss;
+            }
+        }
+        return maxLoss;
+    }
+
 
     private boolean beatsAllForOneDataPoint(int variationToTest, int dataPoint) {
         for (int i = 0; i < numberOfVariations; i++) {
